@@ -1,7 +1,8 @@
 #!/bin/bash -e
 
-# Heavily based on terrific http://jerasure.org/bassamtabbara/gf-complete/blob/v2-simd-runtime-detection/tools/test_simd_qemu.sh
+# Heavily based on excellent http://jerasure.org/bassamtabbara/gf-complete/blob/v2-simd-runtime-detection/tools/test_simd_qemu.sh
 # created by Bassam Tabbara
+# Lincese probably same as script under above URL
 
 script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 qemu_dir="${script_dir}/.qemu"
@@ -27,6 +28,20 @@ cleanup() {
 
 trap cleanup EXIT
 
+show_help() {
+    script_name=$( basename ${BASH_SOURCE[0]} )
+    echo "Usage: ${script_name} [OPTION]..."
+    cat <<EOD
+-h | --help         show help
+--ssh[=COMMAND]     open ssh session to the started qemu and execute optional COMMAND upon log-on
+--scp=ARGS          transfer data between host and qemu machine, e.g. --scp="file qemu@localhost:/path"
+-i | --init         setup and initialize guest files from scratch. This will download kernel, initrd, and QCOW2 image,
+                    and create delta image, mountable ISO image with ssh keys
+-c | --continue     resume interrupted downloading of files initiated with -i option
+--stdio             use stdout for console output for booted machine. If not specified data is saved in console.log file
+--start             boot existing machine. This option can only appear by itself or with -i argument.
+EOD
+}
 
 init_image () {
     for i in "$@"
@@ -178,10 +193,19 @@ run_main() {
         SCP_ARGS=${i#*=}
         shift
         ;;
+        -h|--help)
+        HELP=YES
+        shift
+        ;;
         *)
         ;;
     esac
     done
+
+    if [[ ${HELP} == "YES" ]]; then
+        show_help
+        return
+    fi
 
     if [[ ${SSH} == "YES" ]]; then
         run_ssh ${SSH_ARGS}
